@@ -1,0 +1,24 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "app_config.c"
+        "provisioning.c"
+        "wifi_mgr.c"
+        "wol.c"
+        "bemfa.c"
+        "power.c"
+    INCLUDE_DIRS
+        "."
+    EMBED_FILES
+        "index.html"
+    REQUIRES
+        esp_wifi
+        esp_event
+        esp_netif
+        nvs_flash
+        mqtt
+        esp_pm
+        driver
+        lwip
+        esp_http_server
+)

@@ -1,0 +1,27 @@
+// 复制本文件为 .vscode/settings.json 后使用（改名去掉 .example）。
+// 三处路径改成你自己机器上的实际安装位置，idf.port 改成你的串口。
+//
+// 关键：customExtraVars 里的 IDF_PATH / IDF_TOOLS_PATH / IDF_PYTHON_ENV_PATH
+// 三个键一个都不能少。扩展靠它们判断「有没有一套能用的 IDF」：
+//   前两个目录都存在 -> 从第三个拼出 Scripts\python.exe
+// 缺任何一个，右下角就会报：
+//   No ESP-IDF Setups found
+//   The extension configuration is not valid
+//   cmake executable not found / esptool.py is missing
+{
+  "idf.customExtraVars": {
+    "IDF_PATH": "D:\\Espressif\\frameworks\\esp-idf-v5.5.6",
+    "IDF_TOOLS_PATH": "D:\\Espressif",
+    "IDF_PYTHON_ENV_PATH": "D:\\Espressif\\python_env\\idf5.5_py3.11_env",
+    "ESP_ROM_ELF_DIR": "D:\\Espressif\\tools\\esp-rom-elfs\\20260528",
+    "IDF_CCACHE_ENABLE": "0"
+  },
+
+  "idf.extensionActivationMode": "always",
+  "idf.flashType": "UART",
+  "idf.port": "COM11",
+  "idf.flashBaudRate": "460800",
+  "idf.monitorBaudRate": "115200",
+  "idf.enableCCache": false,
+  "idf.saveBeforeBuild": true
+}

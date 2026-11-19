@@ -1,0 +1,172 @@
+menu "WOL Remote Wake"
+
+config APP_PROVISIONING
+    bool "Enable web provisioning (SoftAP setup page)"
+    default y
+    help
+        配置不完整时（WiFi SSID / 巴法云 UID / 主题名 / 目标 MAC 任一缺失），
+        设备会开一个开放热点 WOL-Setup-XXXX，用户在手机浏览器里
+        打开 192.168.4.1 填写，保存后自动重启进入正常模式。
+
+        填了下面的 menuconfig 值就等于「出厂预置」，首次上电不会进配网。
+
+        关掉本项则只认 menuconfig，配置缺失时直接停机不再配网。
+
+config APP_WIFI_SSID
+    string "WiFi SSID (2.4GHz only)"
+    default ""
+    help
+        ESP32-C3 只支持 2.4GHz。如果你的路由器开了双频合一，
+        建议单独为 IoT 设备开一个 2.4GHz 的 SSID，避免连到远端节点。
+
+        这里填了就是「出厂预置」，首次上电不会进配网。
+        留空则开机自动进配网，由用户在网页里填。
+
+config APP_WIFI_PASSWORD
+    string "WiFi password"
+    default ""
+    help
+        留空表示开放网络（不推荐）。
+
+        与 SSID 一样，这只是出厂默认值。
+        用户在配网页面填过之后，NVS 里的值优先，这里就不再起作用。
+
+config APP_WIFI_TX_POWER_QDBM
+    int "WiFi max TX power, unit = 0.25 dBm"
+    range 8 84
+    default 56
+    help
+        56 = 14 dBm，84 = 21 dBm。
+
+        某些 ESP32-C3 SuperMini 的射频前端在高功率下会失真：
+        帧能发出去，但 AP 解调不出来，表现为反复 AUTH_EXPIRE
+        （reason=2），看起来像密码错误，实际是功率问题。
+
+        默认压到 56（14dBm）。如果你确认自己的板子射频正常、
+        且需要更好的穿墙能力，可以调到 68~76 再测。
+
+choice APP_WIFI_PS_MODE
+    prompt "WiFi power save mode"
+    default APP_WIFI_PS_MAX_MODEM
+
+config APP_WIFI_PS_MIN_MODEM
+    bool "MIN_MODEM - wake up every DTIM (fast response)"
+
+config APP_WIFI_PS_MAX_MODEM
+    bool "MAX_MODEM - wake up per listen interval (lowest power)"
+
+endchoice
+
+config APP_WIFI_LISTEN_INTERVAL
+    int "WiFi listen interval (beacons)"
+    range 1 30
+    default 10
+    depends on APP_WIFI_PS_MAX_MODEM
+    help
+        只在 MAX_MODEM 省电模式下生效。
+
+        它决定设备每隔多少个 AP beacon 才醒来收一次包，
+        等效于路由器的 DTIM 周期：数字越大越省电，但指令响应越慢。
+
+        默认 3 时约 6 秒响应；调到 10 约 10~15 秒，电流明显下降。
+
+        为什么不用路由器改 DTIM：很多运营商定制固件的 Web 界面
+        并不暴露 DTIM 选项，而 listen interval 完全由固件掌控，
+        且只影响这一台设备，不会拖慢家里其他 2.4G 设备。
+
+config APP_BEMFA_UID
+    string "Bemfa (巴法云) UID"
+    default ""
+    help
+        巴法云控制台 -> 个人中心里的 32 位 UID。
+        同时也是 MQTT 的 client_id / username / password。
+
+        留空则开机进配网。
+
+config APP_BEMFA_TOPIC
+    string "Bemfa topic"
+    default ""
+    help
+        在巴法云控制台创建的 MQTT 主题名。
+        接入米家时把设备名改成「电脑」、类型选 switch，
+        同步后就能用小爱同学语音控制。
+
+        留空则开机进配网。
+
+config APP_TARGET_MAC
+    string "Target PC MAC (AA:BB:CC:DD:EE:FF)"
+    default "00:00:00:00:00:00"
+    help
+        要唤醒的电脑的有线网卡 MAC。
+        必须是网线口的 MAC，WiFi 网卡收不到魔术包。
+
+        留全 0 时固件会在启动时打印一条警告并拒绝发送魔术包，
+        避免误配置后一直静默失败。
+
+config APP_TARGET_BROADCAST
+    string "Magic packet destination"
+    default "auto"
+    help
+        默认 auto：设备按自己的 IP 和子网掩码推导子网广播地址
+        （例如 192.168.1.43/24 -> 192.168.1.255），不用手填，也不会填错。
+
+        也可以固定写死：255.255.255.255 是全局广播；
+        路由器禁止广播时，改成子网定向广播，例如 192.168.1.255。
+
+config APP_MAGIC_PORT
+    int "Magic packet UDP port"
+    range 1 65535
+    default 9
+
+config APP_ENABLE_LIGHT_SLEEP
+    bool "Enable automatic light sleep"
+    default y
+    help
+        开启后 CPU 会在空闲时自动进入 light sleep，
+        配合 WiFi modem sleep 可以做到亚毫安级平均电流。
+
+        关闭后芯片常亮，电流约 80~100mA，只适合 USB 供电。
+
+config APP_AWAKE_WINDOW_S
+    int "Remote debug awake window (seconds)"
+    default 600
+    help
+        通过 MQTT 下发 "debug" 后，设备会持有一把
+        ESP_PM_NO_LIGHT_SLEEP 锁并保持清醒这么久。
+
+        为什么需要它：C3 的 USB-Serial/JTAG 在 light sleep 时会
+        掉线，睡着以后既看不到日志也烧不了固件。有这个窗口，
+        就能远程让板子自己醒来，恢复串口后直接烧录。
+
+config APP_BOOT_GPIO
+    int "BOOT button GPIO"
+    default 9
+    help
+        按住这个键再上电，本次运行不进入 light sleep，
+        方便用串口调试。ESP32-C3 SuperMini 的 BOOT 键是 GPIO9。
+
+config APP_STARTUP_GRACE_MS
+    int "Startup grace period before sleeping (ms)"
+    default 30000
+
+config APP_STATUS_REPORT
+    bool "Periodic status report over MQTT"
+    default n
+    help
+        默认关闭。每次上报都会把 WiFi 唤醒一次，对电池续航有明显影响。
+        调试阶段可以打开。
+
+config APP_STATUS_INTERVAL_S
+    int "Status report interval (seconds)"
+    depends on APP_STATUS_REPORT
+    default 300
+
+config APP_MQTT_KEEPALIVE_S
+    int "MQTT keepalive (seconds)"
+    range 30 1200
+    default 120
+    help
+        每过一个 keepalive 周期设备都要和服务器交换一次心跳，
+        这个心跳同样会唤醒 WiFi。电池场景建议 120~300。
+
+endmenu

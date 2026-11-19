@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a84ff">
+<title>远程唤醒器 · 配网</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0 auto;padding:22px 16px 44px;max-width:520px;
+     font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+     font-size:16px;line-height:1.6;color:#1a1a1a;background:#f5f5f7;-webkit-text-size-adjust:100%}
+h1{font-size:20px;margin:0 0 6px;font-weight:600}
+.sub{color:#666;font-size:13px;margin:0 0 18px}
+.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card h2{font-size:13px;font-weight:600;color:#0a84ff;margin:0 0 4px;letter-spacing:.3px}
+label{display:block;font-size:13px;color:#555;margin:14px 0 6px;font-weight:500}
+label:first-of-type{margin-top:8px}
+input{width:100%;padding:11px 12px;font-size:16px;border:1px solid #d8d8dc;border-radius:10px;
+      background:#fff;color:#1a1a1a;outline:none;transition:border-color .15s}
+input:focus{border-color:#0a84ff;box-shadow:0 0 0 3px rgba(10,132,255,.12)}
+.row{display:flex;gap:8px}
+.row input{flex:1;min-width:0}
+button{font-family:inherit;cursor:pointer;border:0}
+button.scan{flex:none;padding:0 14px;font-size:13px;border:1px solid #d8d8dc;background:#f5f5f7;
+            border-radius:10px;color:#1a1a1a;white-space:nowrap}
+button.scan:active{background:#e8e8ea}
+button.submit{width:100%;padding:14px;font-size:16px;font-weight:600;color:#fff;
+              background:#0a84ff;border-radius:12px;margin-top:8px}
+button.submit:active{background:#0060df}
+button:disabled{opacity:.45;cursor:default}
+.hint{font-size:12px;color:#888;margin:8px 0 0}
+.demo{margin:10px 0 0;padding:10px 12px;border:1px solid #e5e5ea;border-radius:10px;
+      background:#fafafa;font-size:12px;line-height:1.9;overflow-x:auto}
+.demo .tag{color:#888}
+.demo code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;
+           padding:1px 5px;border-radius:5px;background:#eef0f3;color:#1a1a1a}
+.demo .ok{color:#1a7f37;font-weight:600}
+.demo .no{color:#c0392b;font-weight:600}
+.foot{font-size:12px;color:#888;margin-top:18px;line-height:1.75}
+.foot b{color:#666}
+@media(prefers-color-scheme:dark){
+  body{background:#000;color:#f5f5f7}
+  .card{background:#1c1c1e;box-shadow:none}
+  .card h2{color:#4da3ff}
+  input{background:#2c2c2e;border-color:#3a3a3c;color:#f5f5f7}
+  button.scan{background:#2c2c2e;border-color:#3a3a3c;color:#f5f5f7}
+  .sub,label,.hint,.foot{color:#a1a1a6}
+  .foot b{color:#c7c7cc}
+  .demo{background:#242426;border-color:#3a3a3c}
+  .demo code{background:#3a3a3c;color:#f5f5f7}
+  .demo .ok{color:#4ade80}
+  .demo .no{color:#f87171}
+}
+</style>
+</head>
+<body>
+
+<h1>远程唤醒器 · 配网</h1>
+<p class="sub">你正连接着本机热点，填写下面几项后保存，设备会自动重启并接入你的 WiFi。</p>
+
+<form id="cfgForm" method="POST" action="/save" autocomplete="off">
+
+  <div class="card">
+    <h2>1 · 家里的 WiFi</h2>
+
+    <label for="ssid">WiFi 名称（只支持 2.4G）</label>
+    <div class="row">
+      <input id="ssid" name="ssid" list="apList" required maxlength="32" placeholder="点右边扫描，或手动输入">
+      <datalist id="apList"></datalist>
+      <button type="button" class="scan" id="scanBtn">扫描</button>
+    </div>
+
+    <label for="pass">WiFi 密码</label>
+    <input id="pass" name="pass" type="password" maxlength="64" placeholder="开放网络留空">
+  </div>
+
+  <div class="card">
+    <h2>2 · 巴法云</h2>
+
+    <label for="uid">UID</label>
+    <input id="uid" name="uid" required maxlength="39" placeholder="32 位，控制台「个人中心」里">
+    <p class="hint">cloud.bemfa.com 注册后即可看到，同时用作 MQTT 的用户名和密码。</p>
+
+    <label for="topic">主题值</label>
+    <input id="topic" name="topic" required maxlength="63" placeholder="aB3xY9kLm006">
+    <p class="hint">填那行<b>字母数字串</b>，不是中文昵称。</p>
+    <div class="demo">
+      <div class="tag">控制台里一般显示成这样（下面是示例，别照抄，填你自己的）：</div>
+      <div><span class="ok">✓</span> 主题值 <code>aB3xY9kLm006</code> &nbsp;← 填这个</div>
+      <div><span class="no">✗</span> 昵称 <code>客厅电脑</code> &nbsp;← 别填，填了收不到消息</div>
+    </div>
+    <p class="hint">填成昵称也能连上巴法云，但那个主题下没有任何设备，控制台会一直显示「订阅者：离线」。</p>
+  </div>
+
+  <div class="card">
+    <h2>3 · 要唤醒的电脑</h2>
+
+    <label for="mac">有线网卡 MAC</label>
+    <input id="mac" name="mac" required maxlength="17" placeholder="AA:BB:CC:DD:EE:FF">
+    <p class="hint">必须是网线口的 MAC，WiFi 网卡收不到魔术包。Windows 里 <b>ipconfig /all</b> 可查。</p>
+  </div>
+
+  <button type="submit" class="submit">保存并重启</button>
+</form>
+
+<p class="foot">
+  <b>配置错了怎么办？</b>重新上电后如果连不上 WiFi，把板子的 USB 拔掉再插一次即可重新进入本页面（配置未完成时会自动进配网模式）。<br>
+  <b>安全提示：</b>本页面只在配置阶段开放，保存后热点立即关闭。
+</p>
+
+<script>
+(function () {
+  var btn = document.getElementById('scanBtn');
+  var input = document.getElementById('ssid');
+  var list = document.getElementById('apList');
+
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    btn.textContent = '扫描中';
+    fetch('/scan', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (aps) {
+        list.innerHTML = '';
+        aps.forEach(function (ap) {
+          var o = document.createElement('option');
+          o.value = ap.ssid;
+          o.label = ap.rssi + ' dBm';
+          list.appendChild(o);
+        });
+        btn.textContent = aps.length ? '找到 ' + aps.length + ' 个' : '没找到';
+        if (aps.length) { input.focus(); }
+      })
+      .catch(function () {
+        btn.textContent = '扫描失败';
+      })
+      .then(function () {
+        btn.disabled = false;
+        setTimeout(function () { btn.textContent = '扫描'; }, 3000);
+      });
+  });
+})();
+
+// 主题值里一定没有中文。填成昵称时立刻拦下，比事后排查省事。
+(function () {
+  var form = document.getElementById('cfgForm');
+  var topic = document.getElementById('topic');
+  form.addEventListener('submit', function (e) {
+    if (/[\u3400-\u9fff\uff00-\uffef]/.test(topic.value)) {
+      e.preventDefault();
+      alert('主题值里不会有中文。\n\n' +
+            '要填的是形如 aB3xY9kLm006 的字母数字串。\n' +
+            '「昵称：客厅电脑」那行只是备注名，填进去等于订阅一个空主题，\n' +
+            '设备在巴法云上会一直显示离线。');
+      topic.focus();
+      topic.select();
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

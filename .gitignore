@@ -1,0 +1,23 @@
+# Build output
+build/
+
+# Local configuration -- contains WiFi password and Bemfa credentials.
+# Never commit this file. Use `idf.py menuconfig` to regenerate it.
+sdkconfig
+sdkconfig.old
+sdkconfig.*
+build-*/
+
+# Prebuilt images staged for flashing -- never commit firmware blobs
+dist/
+
+# Logs
+*.log
+
+# Editor / OS
+# .vscode 整体忽略，但保留 settings 模板（不含任何私人信息）
+.vscode/*
+!.vscode/settings.json.example
+.idea/
+.DS_Store
+Thumbs.db
